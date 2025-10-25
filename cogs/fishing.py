@@ -447,139 +447,44 @@ class Fishing(commands.Cog):
         if user_id in self.auto_fishing_tasks:
             end_time = self.auto_fishing_end_time.get(user_id)
             if end_time and datetime.utcnow() < end_time:
-                 remaining_time = end_time - datetime.utcnow()
-                 hours = int(remaining_time.total_seconds() // 3600)
-                 minutes = int((remaining_time.total_seconds() % 3600) // 60)
-                 
-                 await ctx.send(
-                     f"🤖 **Auto-fishing sedang aktif!** Kamu akan menerima ikan otomatis.\n"
-                     f"Sisa waktu: **{hours} jam {minutes} menit**."
-                 )
-                 return
+                remaining_time = end_time - datetime.utcnow()
+                hours = int(remaining_time.total_seconds() // 3600)
+                minutes = int((remaining_time.total_seconds() % 3600) // 60)
+                
+                await ctx.send(
+                    f"🤖 **Auto-fishing sedang aktif!** Kamu akan menerima ikan otomatis.\n"
+                    f"Sisa waktu: **{hours} jam {minutes} menit**."
+                )
+                return
 
         user_data = await get_user(user_id)
         if not user_data:
             await create_user(user_id)
         
-        # 2. Check Cooldown 1 Menit (Universal Cooldown)
+        # 2. Check Cooldown 1 Menit
         fishing_data = await self.get_user_fishing_data(user_id)
-        last_fish_time_str = fishing_data["stats"].get("last_fish_time")
+        last_fish_time_obj = fishing_data["stats"].get("last_fish_time")
         
         cooldown_duration = timedelta(minutes=1)
         
-        if last_fish_time_str:
-            # Menggunakan datetime.fromisoformat untuk string dari database
-            last_time = datetime.fromisoformat(last_fish_time_str)
+        if last_fish_time_obj:
+            last_time = last_fish_time_obj
+            
+            # Fix: Handle both string and datetime objects
+            if isinstance(last_fish_time_obj, str):
+                try:
+                    last_time = datetime.fromisoformat(last_fish_time_obj)
+                except ValueError:
+                    last_time = datetime.utcnow() - cooldown_duration
             
             if datetime.utcnow() - last_time < cooldown_duration:
                 remaining = cooldown_duration - (datetime.utcnow() - last_time)
-                # Tampilkan sisa waktu cooldown
                 await ctx.send(f"⏳ Tunggu **{remaining.seconds}s** lagi untuk `mochi!fish`.")
                 return
         
-        # 3. Panggil CORE LOGIC (perform_fishing menangani penangkapan dan DB update)
+        # 3. ✅ HANYA PANGGIL perform_fishing() - SELESAI!
         await self.perform_fishing(user_id, channel_id, guild_id, is_auto=False)
-        # Check voice bonus
-        voice_bonus = 1.0
-        in_voice = False
-        if ctx.author.voice and ctx.author.voice.channel:
-            voice_bonus = 2.5
-            in_voice = True
         
-        # Tier-based catch system
-        rod_level = fishing_data["upgrades"].get("fishing_rod", 0)
-        
-        if rod_level == 0:
-            base_catch_count = random.randint(1, 2)
-            fish_amount_min = 1
-            fish_amount_max = 1
-        elif rod_level < 10:
-            base_catch_count = random.randint(1, 2)
-            fish_amount_min = 1
-            fish_amount_max = 2
-        elif rod_level < 25:
-            base_catch_count = random.randint(2, 3)
-            fish_amount_min = 1
-            fish_amount_max = 2
-        elif rod_level < 50:
-            base_catch_count = random.randint(2, 4)
-            fish_amount_min = 1
-            fish_amount_max = 3
-        else:
-            base_catch_count = random.randint(3, 5)
-            fish_amount_min = 2
-            fish_amount_max = 4
-        
-        if in_voice:
-            base_catch_count = int(base_catch_count * voice_bonus)
-        
-        # Catch fish
-        caught_fish = []
-        for _ in range(base_catch_count):
-            fish = self.get_random_fish(rod_level)
-            amount = random.randint(fish_amount_min, fish_amount_max)
-            
-            if in_voice:
-                amount = int(amount * 1.5)
-            
-            caught_fish.append((fish, amount))
-        
-        # Update database
-        async with aiosqlite.connect("mochi.db") as db:
-            await db.execute("""
-                UPDATE fishing_stats 
-                SET total_fish_caught = total_fish_caught + ?, 
-                    last_fish_time = ?
-                WHERE user_id = ?
-            """, (sum(amt for _, amt in caught_fish), datetime.utcnow(), ctx.author.id))
-            
-            for fish, amount in caught_fish:
-                cursor = await db.execute("""
-                    SELECT amount FROM fishing_inventory 
-                    WHERE user_id = ? AND fish_name = ?
-                """, (ctx.author.id, fish["name"]))
-                existing = await cursor.fetchone()
-                
-                if existing:
-                    await db.execute("""
-                        UPDATE fishing_inventory 
-                        SET amount = amount + ? 
-                        WHERE user_id = ? AND fish_name = ?
-                    """, (amount, ctx.author.id, fish["name"]))
-                else:
-                    await db.execute("""
-                        INSERT INTO fishing_inventory (user_id, fish_name, amount)
-                        VALUES (?, ?, ?)
-                    """, (ctx.author.id, fish["name"], amount))
-            
-            await db.commit()
-        
-        # Build response
-        catch_text = ""
-        total_value = 0
-        
-        for fish, amount in caught_fish:
-            price = self.get_fish_price(fish["name"])
-            value = price * amount
-            total_value += value
-            catch_text += f"{fish['emoji']} **{fish['name']}** x{amount} (Rp {value:,})\n"
-        
-        embed = discord.Embed(title="🎣 Hasil Memancing!", description=catch_text, color=0x3498db)
-        
-        if in_voice:
-            embed.add_field(name="🎤 Voice Bonus", value="**+150%** ikan! (2.5x)", inline=False)
-        
-        embed.add_field(name="💰 Total Nilai", value=f"Rp {total_value:,}", inline=True)
-        embed.add_field(name="🎒 Inventory", value="Gunakan `mochi!inventory`", inline=True)
-        
-        footer_text = "Jual: mochi!sellfish • Harga update tiap 15 menit!"
-        if not in_voice:
-            footer_text = "💡 Join VC untuk +150% ikan! • " + footer_text
-        
-        embed.set_footer(text=footer_text)
-        
-        await ctx.send(embed=embed)
-    
     @commands.command(name="inventory", aliases=["inv"])
     async def inventory_command(self, ctx, member: discord.Member = None):
         """🎒 Lihat inventory ikan"""

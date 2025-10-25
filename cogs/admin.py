@@ -13,8 +13,9 @@ class Admin(commands.Cog):
 
     @commands.command(name="setup")
     async def setup_roles(self, ctx):
-        """Command untuk mendapatkan Role IDs dari server"""
-        if ctx.author.id != OWNER_ID:
+        # PERBAIKAN: Check in list untuk konsistensi/multi-owner masa depan
+        allowed_owners = OWNER_ID if isinstance(OWNER_ID, list) else [OWNER_ID]
+        if ctx.author.id not in allowed_owners:
             await ctx.send("❌ Hanya owner yang bisa pakai command ini!")
             return
         

@@ -73,9 +73,9 @@ class Gacha(commands.Cog):
                                 item_msg = "🎁 **Biasa**: +Rp 10.000"
 
         # Update quest progress
-        ach_cog = self.bot.get_cog('Achievements')
-        if ach_cog:
-            await ach_cog.update_quest_progress(ctx.author.id, "gacha_roll", 1)
+        quest_cog = self.bot.get_cog('Quests') # <<< Ambil COG yang benar
+        if quest_cog:
+            await quest_cog.update_quest_progress(ctx.author.id, "gacha_roll", 1) 
             
         embed = discord.Embed(title="🎰 Gacha Mochi", description=item_msg, color=0xff69b4)
         embed.set_footer(text=f"Sisa roll: {new_rolls}")

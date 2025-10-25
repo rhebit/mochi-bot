@@ -504,12 +504,12 @@ class JadeGacha(commands.Cog):
             result["is_jackpot"]
         )
         
-          # Update quest progress
-        ach_cog = self.bot.get_cog('Achievements')
-        if ach_cog:
+        # Update quest progress (PERBAIKAN DARI ach_cog KE quest_cog)
+        quest_cog = self.bot.get_cog('Quests') 
+        if quest_cog:
             # Quest jade_cut hanya untuk rare+
             if jade_key in ["rare", "epic", "legendary"]:
-                await ach_cog.update_quest_progress(ctx.author.id, "jade_cut", 1)
+                await quest_cog.update_quest_progress(ctx.author.id, "jade_cut", 1) 
 
         # Remove session
         if ctx.author.id in self.active_sessions:

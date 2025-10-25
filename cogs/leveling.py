@@ -28,9 +28,7 @@ class Leveling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         # Start the background task
-        # PERBAIKAN: Pastikan loop berjalan setiap menit
         if not self.kumpul_processor.is_running():
-            self.kumpul_processor.change_interval(minutes=1) # Set interval ke 1 menit
             self.kumpul_processor.start()
 
     def cog_unload(self):
