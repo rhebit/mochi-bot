@@ -1,0 +1,19 @@
+# .gitignore
+
+# File Konfigurasi Rahasia (WAJIB diabaikan)
+utils/config_secrets.py
+
+# Database Lokal (WAJIB diabaikan)
+mochi.db
+mochi.db-journal
+
+# Virtual Environment (Dihasilkan Otomatis)
+venv/
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# File IDE/Sistem Opsional
+.vscode/
+.env
