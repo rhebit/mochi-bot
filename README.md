@@ -177,3 +177,34 @@ Bot ini dilengkapi dengan berbagai modul ekonomi termasuk gacha, sistem memancin
 ---
 
 *(Opsional: Tambahkan bagian Contributing atau License jika perlu)*
+
+---
+
+##  Running with Docker
+
+You can easily run Mochi Bot using Docker and Docker Compose. This ensures a consistent environment and easy deployment.
+
+1.  **Install Docker:** Ensure you have Docker and Docker Compose installed on your system.
+
+2.  **Configuration (.env):**
+    *   Duplicate the .env.example file and rename it to .env.
+    *   Open .env and fill in your Discord Bot Token:
+        `env
+        TOKEN=your_real_discord_token_here
+        `
+
+3.  **Run the Bot:**
+    *   Build and start the container in the background:
+        `ash
+        docker-compose up -d
+        `
+
+4.  **Manage the Bot:**
+    *   View logs: docker-compose logs -f
+    *   Stop the bot: docker-compose down
+    *   Restart: docker-compose restart
+    *   Rebuild (after code changes): docker-compose up -d --build
+
+**Note on Database Persistence:**
+The docker-compose.yml is configured to map a local ./data folder to /app/data inside the container. Your mochi.db database will be stored in this local ./data folder, ensuring your data is safe even if the container is deleted.
+
