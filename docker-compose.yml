@@ -10,4 +10,7 @@ services:
     environment:
       - DB_PATH=/app/data/mochi.db
     volumes:
-      - ./data:/app/data
+      - mochi_db_data:/app/data
+
+volumes:
+  mochi_db_data:
