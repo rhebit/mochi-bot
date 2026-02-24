@@ -3,13 +3,15 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 
+print("Loading environment variables...")
+
 # Define the project root directory
 ROOT_DIR = Path(__file__).resolve().parent.parent
 env_path = ROOT_DIR / '.env'
 
 # Load environment variables from a .env file if it exists
 if env_path.exists():
-    load_dotenv(dotenv_path=env_path)
+    load_dotenv(dotenv_path=env_path, override=True)
 else:
     print(f"Warning: .env file not found at {env_path}")
 
@@ -49,6 +51,7 @@ DEFAULT_ROLES = {
 raw_role_ids = os.getenv("RANK_ROLE_IDS")
 if raw_role_ids:
     try:
+        raw_role_ids = raw_role_ids.strip("'").strip('"')
         RANK_ROLE_IDS = json.loads(raw_role_ids)
     except Exception as e:
         print(f"Warning: Failed to parse RANK_ROLE_IDS from .env: {e}")
