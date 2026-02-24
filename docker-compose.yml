@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mochi-bot:
+    build: .
+    container_name: mochi-bot
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/app/data/mochi.db
+    volumes:
+      - mochi_db_data:/app/data
+
+volumes:
+  mochi_db_data:
