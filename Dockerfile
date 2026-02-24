@@ -3,11 +3,6 @@ FROM python:3.11-slim-bookworm
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
