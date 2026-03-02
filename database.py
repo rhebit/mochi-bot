@@ -2,9 +2,14 @@
 import aiosqlite
 from datetime import datetime, timedelta
 
+import os
+
+# Get database path from environment variable, default to "mochi.db"
+DB_PATH = os.getenv("DB_PATH", "mochi.db")
+
 async def init_db():
     """Initialize all database tables"""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         # Users table
         await db.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -142,7 +147,7 @@ async def init_db():
 
 async def migrate_jade_stats():
     """Migrate jade_stats table to add new columns if they don't exist"""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         try:
             # Check existing columns
             cursor = await db.execute("PRAGMA table_info(jade_stats)")
@@ -177,14 +182,14 @@ async def migrate_jade_stats():
             print(f"❌ Migration error: {e}")
 
 async def get_user(user_id: int):
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
         row = await cursor.fetchone()
         return dict(row) if row else None
 
 async def create_user(user_id: int):
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT INTO users (user_id) VALUES (?)",
             (user_id,)
@@ -250,7 +255,7 @@ async def update_user(user_id: int, **kwargs):
     set_clause = ", ".join([f"{key} = ?" for key in processed_kwargs.keys()])
     values.append(user_id)
     
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             f"UPDATE users SET {set_clause} WHERE user_id = ?",
             values
@@ -258,7 +263,7 @@ async def update_user(user_id: int, **kwargs):
         await db.commit()
 async def get_kumpul_tracking(message_id: int):
     """Ambil data tracking kumpul berdasarkan ID pesan."""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM kumpul_tracking WHERE message_id = ?", (message_id,))
         return await cursor.fetchone()
@@ -277,7 +282,7 @@ async def update_kumpul_tracking(message_id: int, **kwargs):
     query = f"UPDATE kumpul_tracking SET {', '.join(updates)} WHERE message_id = ?"
     values.append(message_id)
     
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(query, tuple(values))
         await db.commit()
 
@@ -285,7 +290,7 @@ async def update_kumpul_tracking(message_id: int, **kwargs):
 # database.py
 async def insert_kumpul_tracking(message_id: int, user_id: int, channel_id: int, start_time: str, end_time: str, max_reactions: int, last_xp_check_time: str):
     """Masukkan pesan kumpul baru."""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             INSERT INTO kumpul_tracking 
             (message_id, user_id, channel_id, start_time, end_time, max_reactions, last_xp_check_time) 
@@ -295,14 +300,14 @@ async def insert_kumpul_tracking(message_id: int, user_id: int, channel_id: int,
         
 async def get_active_kumpul_messages():
     """Ambil semua pesan kumpul yang masih aktif."""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM kumpul_tracking WHERE status = 'active' OR status = 'calculating'")
         return await cursor.fetchall()
     
 async def get_tax_system_state():
     """Get the global tax system state."""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         await db.execute("INSERT OR IGNORE INTO tax_system_stats (id) VALUES (1)")
         cursor = await db.execute("SELECT * FROM tax_system_stats WHERE id = 1")
@@ -311,7 +316,7 @@ async def get_tax_system_state():
 
 async def update_tax_system_state(last_forced_tax: str = None):
     """Update the global tax system state."""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("INSERT OR IGNORE INTO tax_system_stats (id) VALUES (1)")
         
         set_parts = []
@@ -333,7 +338,7 @@ async def update_tax_system_state(last_forced_tax: str = None):
 
 async def verify_all_tables():
     """Verify all database tables structure"""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         tables = ["users", "jade_stats", "fishing_stats", "fishing_inventory", "fishing_upgrades", "crypto_portfolio"]
         
         print("\n" + "="*60)
@@ -367,7 +372,7 @@ async def backup_database():
     
     backup_data = {}
     
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         
         tables = ["users", "jade_stats", "fishing_stats", "fishing_inventory", "fishing_upgrades", "crypto_portfolio"]
@@ -398,7 +403,7 @@ async def backup_database():
 
 async def reset_table(table_name: str):
     """Reset specific table (BE CAREFUL!)"""
-    async with aiosqlite.connect("mochi.db") as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         response = input(f"⚠️ Are you sure you want to DELETE all data from '{table_name}'? (yes/no): ")
         if response.lower() == 'yes':
             await db.execute(f"DELETE FROM {table_name}")
